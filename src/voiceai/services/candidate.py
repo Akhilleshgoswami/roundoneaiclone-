@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from voiceai.models.candidate import Candidate
 from voiceai.schemas.candidate import CandidateCreate
+from voiceai.services.organization import require_organization
 
 
 async def create_candidate(
@@ -14,6 +15,8 @@ async def create_candidate(
     payload: CandidateCreate,
 ) -> Candidate:
     """Create and persist a candidate."""
+
+    await require_organization(session, payload.organization_id)
 
     candidate = Candidate(**payload.model_dump())
     session.add(candidate)

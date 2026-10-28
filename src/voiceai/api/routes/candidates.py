@@ -3,12 +3,13 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from voiceai.db.session import get_db_session
 from voiceai.schemas.candidate import CandidateCreate, CandidateRead
 from voiceai.services.candidate import create_candidate, list_candidates
+from voiceai.services.organization import OrganizationNotFoundError
 
 router = APIRouter(prefix="/api/v1/candidates", tags=["candidates"])
 
@@ -26,7 +27,14 @@ async def create_candidate_endpoint(
 ) -> CandidateRead:
     """Register a candidate."""
 
-    candidate = await create_candidate(session, payload)
+    try:
+        candidate = await create_candidate(session, payload)
+    except OrganizationNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
     return CandidateRead.model_validate(candidate)
 
 

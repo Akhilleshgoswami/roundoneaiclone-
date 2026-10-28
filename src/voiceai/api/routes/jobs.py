@@ -3,12 +3,13 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from voiceai.db.session import get_db_session
 from voiceai.schemas.job import JobCreate, JobRead
 from voiceai.services.job import create_job, list_jobs
+from voiceai.services.organization import OrganizationNotFoundError
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
 
@@ -22,7 +23,14 @@ async def create_job_endpoint(
 ) -> JobRead:
     """Create a job for an organization."""
 
-    job = await create_job(session, payload)
+    try:
+        job = await create_job(session, payload)
+    except OrganizationNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
     return JobRead.model_validate(job)
 
 
